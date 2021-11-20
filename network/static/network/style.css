@@ -1,0 +1,44 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+p {
+  margin: 0;
+  padding: 0;
+}
+
+.allPosts {
+  display: flex;
+  margin-top: 10px;
+  flex-direction: column;
+}
+.posts {
+  margin: 0 auto;
+  padding: 60px 20px;
+  width: 50%;
+  border-radius: 12px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+}
+.creator {
+  font-size: 20px;
+  padding: 16px 5px;
+  font-weight: bold;
+}
+.date {
+  font-size: 14px;
+  color: gray;
+  margin-top: -20px;
+  padding: 0px 5px;
+}
+p.body {
+  height: 240px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.02);
+}
+img.notLiked {
+  filter: grayscale(100%);
+}

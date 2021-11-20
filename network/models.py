@@ -16,7 +16,7 @@ class Post(models.Model):
         return {
         "id":self.id,
         "created_at": self.created_at.strftime("%b %d %Y, %I:%M %p"),
-        "likes":len(self.likes.all()),
+        "likes":[like.username for like in self.likes.all()],
         "creator":self.creator.username,
         "post_body":self.post_body
         }    
@@ -34,9 +34,8 @@ class Profile(models.Model):
         "following":len(self.following.all()),
         "user":self.user.username
         }
-    def get_followers(self):
+    def get_following(self):
+
+        following_usernames= [follow.username for follow in self.following.all()]
+        return following_usernames  
         
-        return
-        {
-        "followers":[follower for follower in self.followed.all()]  
-        }

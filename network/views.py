@@ -5,7 +5,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.http.response import JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
-
+import json
 from .models import User,Post,Profile
 
 
@@ -67,6 +67,10 @@ def register(request):
     else:
         return render(request, "network/register.html")
 
+
+
+
+
 @login_required
 def posts(request):
 
@@ -77,6 +81,12 @@ def posts(request):
     
     if request.method=="GET":
         posts=posts.order_by("-created_at").all()
+        return JsonResponse([post.serialize() for post in posts],safe=False)
+    elif request.method == "POST":
+        data = json.loads(request.body)
+        Post.objects.create(creator=request.user,post_body=data["post_body"])
+        
+        posts=posts.order_by("-created_at").all()      
         return JsonResponse([post.serialize() for post in posts],safe=False)
 
 @login_required
@@ -105,5 +115,52 @@ def profile(request):
         return JsonResponse({"error": "Posts not found."}, status=404)
 
     if request.method == "GET":
-        
         return JsonResponse(profile.serialize(),safe=False)
+
+@login_required
+def edit_posts(request,id):
+    try:
+        post=Post.objects.get(id=id)
+    except Post.DoesNotExist:
+        return JsonResponse({"error": "Posts not found."}, status=404)
+    
+    if request.method == "PUT":
+        data=json.load(request.body)
+        post.post_body=data["post_body"]
+        post.save()
+        return HttpResponseRedirect(reverse("profile"))
+
+@login_required
+def get_data_for_certain_user(request,user):
+    try:
+        posts=Post.objects.filter(creator=user)
+    except Post.DoesNotExist:
+        return JsonResponse({"error": "Posts not found."}, status=404)
+    
+    if request.method=="GET":
+        posts=posts.order_by("-created_at").all()
+        return JsonResponse([post.serialize() for post in posts],safe=False)
+
+@login_required
+def following_posts(request):
+    try:
+        users=Profile.objects.get(user=request.user).get_following()
+    except Post.DoesNotExist:
+        return JsonResponse({"error": "Posts not found."}, status=404)
+    if request.method=="GET":
+        posts=[Post.objects.filter(creator=User.objects.get(username=user)).order_by("-created_at").all() for user in users]
+        print(posts)
+        if len(posts[0])==0:
+            return JsonResponse({"error": "No Posts found."}, status=404)
+        posts[0]=posts[0].order_by("-create_at").all()
+        return JsonResponse([post.serialize() for post in posts[0]],safe=False)
+
+
+def all_posts(request):
+    try:
+        posts=Post.objects.all()
+    except Post.DoesNotExist:
+        return JsonResponse({"error": "Posts not found."}, status=404)
+    if request.method=="GET":
+        posts.order_by("-created_at").all()
+        return JsonResponse([post.serialize() for post in posts],safe=False)
