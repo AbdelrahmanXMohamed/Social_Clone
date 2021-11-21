@@ -20,6 +20,12 @@ class Post(models.Model):
         "creator":self.creator.username,
         "post_body":self.post_body
         }    
+    def deal_with_like(self,user):
+        if user not in self.likes.all():
+            self.likes.add(user)
+
+        else:
+            self.likes.remove(user)
 
 class Profile(models.Model):
     following =models.ManyToManyField(User,blank=True,related_name="following")

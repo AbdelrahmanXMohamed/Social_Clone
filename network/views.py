@@ -7,6 +7,7 @@ from django.shortcuts import render
 from django.urls import reverse
 import json
 from .models import User,Post,Profile
+from django.views.decorators.csrf import csrf_exempt
 
 
 def index(request):
@@ -89,23 +90,18 @@ def posts(request):
         posts=posts.order_by("-created_at").all()      
         return JsonResponse([post.serialize() for post in posts],safe=False)
 
+@csrf_exempt
 @login_required
 def like_post(request,id):
     try:
         post=Post.objects.get(pk=id)
     except Post.DoesNotExist:
         return JsonResponse({"error": "Posts not found."}, status=404)
-
-    if request.method == "POST":
-        if request.user not in post.likes:
-            post.likes.add(request.user)
-
-        else:
-            post.likes.remove(request.user)
-        
-        posts=Post.objects.filter(creator=request.user)
-        posts=posts.order_by("-created_at").all()
-        return JsonResponse([post.serialize() for post in posts],safe=False)
+    if request.method == "GET":
+        return JsonResponse(post.serialize(),safe=False)
+    if request.method == "PUT":
+        post.deal_with_like(request.user)
+        return JsonResponse(post.serialize(),safe=False)
 
 @login_required
 def profile(request):
@@ -154,7 +150,6 @@ def following_posts(request):
             return JsonResponse({"error": "No Posts found."}, status=404)
         posts[0]=posts[0].order_by("-create_at").all()
         return JsonResponse([post.serialize() for post in posts[0]],safe=False)
-
 
 def all_posts(request):
     try:
