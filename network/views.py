@@ -1,6 +1,7 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
+from django.db.utils import DataError
 from django.http import HttpResponse, HttpResponseRedirect
 from django.http.response import JsonResponse
 from django.shortcuts import render
@@ -69,25 +70,23 @@ def register(request):
         return render(request, "network/register.html")
 
 
-
-
-
-@login_required
+@csrf_exempt
 def posts(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        print(len(data["post_body"]))
+        if len(set(data["post_body"]))==1:
+            return JsonResponse({"error": "invalid input"}, status=404)
+        Post.objects.create(creator=request.user,post_body=data["post_body"])     
+        return JsonResponse({"message":"Created Successfully"},status=201)
 
     try:
-        posts=Post.objects.filter(creator=request.user)
+        posts=Post.objects.all()
     except Post.DoesNotExist:
         return JsonResponse({"error": "Posts not found."}, status=404)
     
     if request.method=="GET":
-        posts=posts.order_by("-created_at").all()
-        return JsonResponse([post.serialize() for post in posts],safe=False)
-    elif request.method == "POST":
-        data = json.loads(request.body)
-        Post.objects.create(creator=request.user,post_body=data["post_body"])
-        
-        posts=posts.order_by("-created_at").all()      
+        posts=posts.order_by("-created_at")
         return JsonResponse([post.serialize() for post in posts],safe=False)
 
 @csrf_exempt
@@ -113,23 +112,26 @@ def profile(request):
     if request.method == "GET":
         return JsonResponse(profile.serialize(),safe=False)
 
+@csrf_exempt
 @login_required
 def edit_posts(request,id):
     try:
         post=Post.objects.get(id=id)
     except Post.DoesNotExist:
         return JsonResponse({"error": "Posts not found."}, status=404)
-    
+ 
     if request.method == "PUT":
-        data=json.load(request.body)
-        post.post_body=data["post_body"]
-        post.save()
-        return HttpResponseRedirect(reverse("profile"))
+        data=json.loads(request.body)
+        if data["post_body"] and post.creator==request.user:
+            post.post_body=data["post_body"]
+            post.save()
+            return JsonResponse(post.serialize(),safe=False)
+        return JsonResponse({"message":"Error"},status=404)
 
 @login_required
-def get_data_for_certain_user(request,user):
+def get_posts_for_certain_user(request):
     try:
-        posts=Post.objects.filter(creator=user)
+        posts=Post.objects.filter(creator=request.user)
     except Post.DoesNotExist:
         return JsonResponse({"error": "Posts not found."}, status=404)
     
@@ -145,17 +147,13 @@ def following_posts(request):
         return JsonResponse({"error": "Posts not found."}, status=404)
     if request.method=="GET":
         posts=[Post.objects.filter(creator=User.objects.get(username=user)).order_by("-created_at").all() for user in users]
-        print(posts)
         if len(posts[0])==0:
             return JsonResponse({"error": "No Posts found."}, status=404)
-        posts[0]=posts[0].order_by("-create_at").all()
+        posts[0]=posts[0].order_by("-created_at").all()
         return JsonResponse([post.serialize() for post in posts[0]],safe=False)
 
-def all_posts(request):
-    try:
-        posts=Post.objects.all()
-    except Post.DoesNotExist:
-        return JsonResponse({"error": "Posts not found."}, status=404)
+@login_required
+def who_current_user(request):
     if request.method=="GET":
-        posts.order_by("-created_at").all()
-        return JsonResponse([post.serialize() for post in posts],safe=False)
+        
+        return JsonResponse({"USERNAME":request.user.username},safe=False)
