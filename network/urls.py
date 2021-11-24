@@ -6,12 +6,19 @@ from network.models import Profile
 from . import views
 
 urlpatterns = [
+    #path("<path:path>", views.index, ),
     path("", views.index, name="index"),
+    path("profile", views.index, name="Profile"),
+    path("following", views.index, name="Following"),
+    path("<int:id>", views.index_id, name="index_id"),
+    path("profile/<int:id>", views.index_id, name="Profile_id"),
+    path("following/<int:id>", views.index_id, name="Following_id"),
     path("login", views.login_view, name="login"),
     path("logout", views.logout_view, name="logout"),
     path("register", views.register, name="register"),
-
+#api
     path("api/posts",views.posts , name="posts"),
+    path("api/postsID/<int:id>",views.posts_id , name="posts_id"),
     path("api/posts/<int:id>",views.like_post , name="post_like"),
     path("api/profile",views.profile , name="profile"),
     path("api/following",views.following_posts,name="following"),

@@ -8,12 +8,14 @@ from django.shortcuts import render
 from django.urls import reverse
 import json
 from .models import User,Post,Profile
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt 
+from django.core.paginator import Paginator
 
 
 def index(request):
     return render(request, "network/index.html")
-
+def index_id(request,id):
+    return render(request, "network/index.html")
 
 def login_view(request):
     if request.method == "POST":
@@ -70,15 +72,7 @@ def register(request):
         return render(request, "network/register.html")
 
 
-@csrf_exempt
 def posts(request):
-    if request.method == "POST":
-        data = json.loads(request.body)
-        print(len(data["post_body"]))
-        if len(set(data["post_body"]))==1:
-            return JsonResponse({"error": "invalid input"}, status=404)
-        Post.objects.create(creator=request.user,post_body=data["post_body"])     
-        return JsonResponse({"message":"Created Successfully"},status=201)
 
     try:
         posts=Post.objects.all()
@@ -88,6 +82,31 @@ def posts(request):
     if request.method=="GET":
         posts=posts.order_by("-created_at")
         return JsonResponse([post.serialize() for post in posts],safe=False)
+        
+    if request.method == "POST":
+        data = json.loads(request.body)
+        print(len(data["post_body"]))
+        if len(set(data["post_body"]))==1:
+            return JsonResponse({"error": "invalid input"}, status=404)
+        Post.objects.create(creator=request.user,post_body=data["post_body"])     
+        return JsonResponse({"message":"Created Successfully"},status=201)
+
+def posts_id(request,id):
+
+    try:
+        posts=Post.objects.all()
+    except Post.DoesNotExist:
+        return JsonResponse({"error": "Posts not found."}, status=404)
+    
+    if request.method=="GET":
+        print(id)
+        posts=posts.order_by("-created_at")
+        posts=Paginator(posts,2).page(id).object_list
+        return JsonResponse({
+        "data":[post.serialize() for post in posts],
+        "num_page":Paginator(Post.objects.all(),2).num_pages,
+        "id":id
+        },safe=False)
 
 @csrf_exempt
 @login_required
@@ -152,8 +171,13 @@ def following_posts(request):
         posts[0]=posts[0].order_by("-created_at").all()
         return JsonResponse([post.serialize() for post in posts[0]],safe=False)
 
-@login_required
 def who_current_user(request):
+
     if request.method=="GET":
         
-        return JsonResponse({"USERNAME":request.user.username},safe=False)
+        if request.user.username:
+            return JsonResponse({"USERNAME":request.user.username},safe=False)
+        return JsonResponse({"error":"None Login"},safe=False)
+
+def posts_pagination(request,id):
+    return render(request, "network/posts.html")
