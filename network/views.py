@@ -59,7 +59,7 @@ def register(request):
         try:
             user = User.objects.create_user(username, email, password)
             user.save()
-            profile=Profile(user=username)
+            profile=Profile.objects.create(user=user)
             profile.save()
 
         except IntegrityError:
