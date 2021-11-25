@@ -14,8 +14,6 @@ from django.core.paginator import Paginator
 
 def index(request):
     return render(request, "network/index.html")
-def index_id(request,id):
-    return render(request, "network/index.html")
 
 def login_view(request):
     if request.method == "POST":
@@ -71,18 +69,9 @@ def register(request):
     else:
         return render(request, "network/register.html")
 
-
+@csrf_exempt
 def posts(request):
 
-    try:
-        posts=Post.objects.all()
-    except Post.DoesNotExist:
-        return JsonResponse({"error": "Posts not found."}, status=404)
-    
-    if request.method=="GET":
-        posts=posts.order_by("-created_at")
-        return JsonResponse([post.serialize() for post in posts],safe=False)
-        
     if request.method == "POST":
         data = json.loads(request.body)
         print(len(data["post_body"]))
@@ -101,10 +90,10 @@ def posts_id(request,id):
     if request.method=="GET":
         print(id)
         posts=posts.order_by("-created_at")
-        posts=Paginator(posts,2).page(id).object_list
+        posts=Paginator(posts,5).page(id).object_list
         return JsonResponse({
         "data":[post.serialize() for post in posts],
-        "num_page":Paginator(Post.objects.all(),2).num_pages,
+        "num_page":Paginator(Post.objects.all(),5).num_pages,
         "id":id
         },safe=False)
 
@@ -148,28 +137,44 @@ def edit_posts(request,id):
         return JsonResponse({"message":"Error"},status=404)
 
 @login_required
-def get_posts_for_certain_user(request):
+def get_posts_for_certain_user_pagination(request,id):
+
     try:
         posts=Post.objects.filter(creator=request.user)
     except Post.DoesNotExist:
         return JsonResponse({"error": "Posts not found."}, status=404)
     
     if request.method=="GET":
-        posts=posts.order_by("-created_at").all()
-        return JsonResponse([post.serialize() for post in posts],safe=False)
+        posts=posts.order_by("-created_at")
+        posts_pagination=Paginator(posts,5).page(id).object_list
+        return JsonResponse({
+        "data":[post.serialize() for post in posts_pagination],
+        "num_page":Paginator(posts,5).num_pages,
+        "id":id
+        },safe=False)
 
 @login_required
-def following_posts(request):
+def following_posts_pagination(request,id):
     try:
         users=Profile.objects.get(user=request.user).get_following()
     except Post.DoesNotExist:
         return JsonResponse({"error": "Posts not found."}, status=404)
     if request.method=="GET":
-        posts=[Post.objects.filter(creator=User.objects.get(username=user)).order_by("-created_at").all() for user in users]
-        if len(posts[0])==0:
+        posts=Post.objects.none()
+        for user in users:
+                posts|= Post.objects.filter(creator=User.objects.get(username=user))
+        posts.order_by("-created_at").all() 
+        print(posts)
+        if len(posts)==0:
             return JsonResponse({"error": "No Posts found."}, status=404)
-        posts[0]=posts[0].order_by("-created_at").all()
-        return JsonResponse([post.serialize() for post in posts[0]],safe=False)
+        posts=posts.order_by("-created_at")
+        posts_pagination=Paginator(posts,5).page(id).object_list
+        return JsonResponse({
+        "data":[post.serialize() for post in posts_pagination],
+        "num_page":Paginator(posts,5).num_pages,
+        "id":id
+        },safe=False)
+
 
 def who_current_user(request):
 
