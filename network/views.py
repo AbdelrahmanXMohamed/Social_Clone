@@ -81,15 +81,12 @@ def posts(request):
         return JsonResponse({"message":"Created Successfully"},status=201)
 
 def posts_id(request,id):
-
     try:
         posts=Post.objects.all()
     except Post.DoesNotExist:
         return JsonResponse({"error": "Posts not found."}, status=404)
     
     if request.method=="GET":
-        print(id)
-        posts=posts.order_by("-created_at")
         posts=Paginator(posts,5).page(id).object_list
         return JsonResponse({
         "data":[post.serialize() for post in posts],
@@ -163,8 +160,6 @@ def following_posts_pagination(request,id):
         posts=Post.objects.none()
         for user in users:
                 posts|= Post.objects.filter(creator=User.objects.get(username=user))
-        posts.order_by("-created_at").all() 
-        print(posts)
         if len(posts)==0:
             return JsonResponse({"error": "No Posts found."}, status=404)
         posts=posts.order_by("-created_at")
@@ -175,7 +170,6 @@ def following_posts_pagination(request,id):
         "id":id
         },safe=False)
 
-
 def who_current_user(request):
 
     if request.method=="GET":
@@ -183,6 +177,3 @@ def who_current_user(request):
         if request.user.username:
             return JsonResponse({"USERNAME":request.user.username},safe=False)
         return JsonResponse({"error":"None Login"},safe=False)
-
-def posts_pagination(request,id):
-    return render(request, "network/posts.html")

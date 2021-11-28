@@ -2,6 +2,7 @@ var CURRENT_USER = null;
 var edited = -1;
 var interval = setInterval(function () { }, 1000);
 document.addEventListener("DOMContentLoaded", function () {
+
     fetch("/api/whoCurrentUser")
         .then((response) => response.json())
         .then((data) => {
@@ -33,31 +34,27 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!CURRENT_USER) {
             document.querySelector("[href='/login']").click();
         }
-        fetch(`/api/posts`)
+        console.log(id)
+        fetch(`/api/posts/${id}`, {
+            method: "PUT",
+        })
             .then((response) => response.json())
-            .then((data) => {
-                fetch(`/api/posts/${id}`, {
-                    method: "PUT",
-                    body: JSON.stringify({ ...data }),
-                })
-                    .then((response) => response.json())
-                    .then(function (data) {
-                        document.querySelector(`#post${id} `).innerHTML = `
+            .then(function (data) {
+                document.querySelector(`#post${id} `).innerHTML = `
                     <p class="creator"> 
                     ${data.creator} ${CURRENT_USER === data.creator
-                                ? '<a id="edit" onclick="edit(' + data.id + ')">edit</a>'
-                                : ""}</p >
+                        ? '<a id="edit" onclick="edit(' + data.id + ')">edit</a>'
+                        : ""}</p >
       <p class="date">${data.created_at}</p>
       <p class="body">${data.post_body}</p>
 
       <img onclick="like(${data.id})" class=${data.likes.some((x) => false || x === CURRENT_USER)
-                                ? "liked"
-                                : "notLiked"
-                            } src="https://img.icons8.com/external-justicon-flat-justicon/64/000000/external-like-notifications-justicon-flat-justicon.png"/>
+                        ? "liked"
+                        : "notLiked"
+                    } src="https://img.icons8.com/external-justicon-flat-justicon/64/000000/external-like-notifications-justicon-flat-justicon.png"/>
       <p>Likes ${data.likes.length}</p>`;
-                    });
             });
-    };
+    }
     edit = (id) => {
         if (edited === -1) {
             edited = id
@@ -182,12 +179,13 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 document.querySelector("#AllPosts").onclick = (e) => {
     clearInterval(interval)
-    if (document.referrer !== "http://127.0.0.1:5000/login" && document.referrer !== "http://127.0.0.1:5000/register") {
+
+    if (window.location.pathname === "/") {
         e.preventDefault();
 
     }
     else {
-        location.reload();
+        //  location.reload()
     }
     if (history.state === null || history.state.section === 1) {
         history.pushState({ page: "#AllPosts", section: 1 }, "", "/")

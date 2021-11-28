@@ -26,6 +26,8 @@ class Post(models.Model):
 
         else:
             self.likes.remove(user)
+    class Meta:
+        ordering = ['-created_at']
 
 class Profile(models.Model):
     following =models.ManyToManyField(User,blank=True,related_name="following")
