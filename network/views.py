@@ -142,7 +142,6 @@ def get_posts_for_certain_user_pagination(request,id):
         return JsonResponse({"error": "Posts not found."}, status=404)
     
     if request.method=="GET":
-        posts=posts.order_by("-created_at")
         posts_pagination=Paginator(posts,5).page(id).object_list
         return JsonResponse({
         "data":[post.serialize() for post in posts_pagination],
