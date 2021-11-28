@@ -30,7 +30,7 @@ def login_view(request):
         else:
             return render(request, "network/login.html", {
                 "message": "Invalid username and/or password."
-            })
+            },status=404)
     else:
         return render(request, "network/login.html")
 
@@ -51,7 +51,7 @@ def register(request):
         if password != confirmation:
             return render(request, "network/register.html", {
                 "message": "Passwords must match."
-            })
+            },status=400)
 
         # Attempt to create new user
         try:
@@ -63,7 +63,7 @@ def register(request):
         except IntegrityError:
             return render(request, "network/register.html", {
                 "message": "Username already taken."
-            })
+            },status=400)
         login(request, user)
         return HttpResponseRedirect(reverse("index"))
     else:
@@ -117,6 +117,14 @@ def profile(request):
     if request.method == "GET":
         return JsonResponse(profile.serialize(),safe=False)
 
+def user_profile(request,id):
+    try:
+        profile= Profile.objects.get(user=User.objects.get(id=id))
+    except Post.DoesNotExist:
+        return JsonResponse({"error": "Posts not found."}, status=404)
+    if request.method == "GET":
+        return JsonResponse(profile.serialize(),safe=False)
+
 @csrf_exempt
 @login_required
 def edit_posts(request,id):
@@ -134,19 +142,19 @@ def edit_posts(request,id):
         return JsonResponse({"message":"Error"},status=404)
 
 @login_required
-def get_posts_for_certain_user_pagination(request,id):
+def get_posts_for_certain_user_pagination(request,id,no):
 
     try:
-        posts=Post.objects.filter(creator=request.user)
+        posts=Post.objects.filter(creator=User.objects.get(id=id))
     except Post.DoesNotExist:
         return JsonResponse({"error": "Posts not found."}, status=404)
     
     if request.method=="GET":
-        posts_pagination=Paginator(posts,5).page(id).object_list
+        posts_pagination=Paginator(posts,5).page(no).object_list
         return JsonResponse({
         "data":[post.serialize() for post in posts_pagination],
         "num_page":Paginator(posts,5).num_pages,
-        "id":id
+        "id":no
         },safe=False)
 
 @login_required
@@ -171,8 +179,27 @@ def following_posts_pagination(request,id):
 
 def who_current_user(request):
 
+
     if request.method=="GET":
         
         if request.user.username:
-            return JsonResponse({"USERNAME":request.user.username},safe=False)
+            return JsonResponse({"USERNAME":request.user.username,"ID":request.user.id},safe=False)
         return JsonResponse({"error":"None Login"},safe=False)
+
+@csrf_exempt
+def follow_user(request,id):
+    if request.method=="POST":
+        try:
+            user = User.objects.get(id=id)
+        except:
+            return JsonResponse({"error": "User not found."}, status=404)
+        Profile1=Profile.objects.get(user=user)
+        Profile2=Profile.objects.get(user=request.user)
+        if request.user.id in Profile1.serialize()["followed_data"]:
+            Profile1.followed.remove(request.user)
+            Profile2.following.remove(user)
+        else:
+            Profile1.followed.add(request.user)
+            Profile2.following.add(user)
+        print(Profile1.serialize())
+        return JsonResponse(Profile1.serialize(),safe=False)

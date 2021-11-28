@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", function () {
         .then((response) => response.json())
         .then((data) => {
             if (data.USERNAME) {
-                CURRENT_USER = data.USERNAME;
+                CURRENT_USER = data;
             }
         }).then(function () {
             if (window.location.pathname === "/") {
@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", function () {
                  Using JavaScript, you should asynchronously let the server know to update the like count (as via a call to fetch) and
                  then update the post’s like count displayed on the page, without requiring a reload of the entire page.
              */
-        if (!CURRENT_USER) {
+        if (!CURRENT_USER.USERNAME) {
             document.querySelector("[href='/login']").click();
         }
         console.log(id)
@@ -42,13 +42,13 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(function (data) {
                 document.querySelector(`#post${id} `).innerHTML = `
                     <p class="creator"> 
-                    ${data.creator} ${CURRENT_USER === data.creator
+                    ${data.creator.username} ${CURRENT_USER.USERNAME === data.creator.username
                         ? '<a id="edit" onclick="edit(' + data.id + ')">edit</a>'
                         : ""}</p >
       <p class="date">${data.created_at}</p>
       <p class="body">${data.post_body}</p>
 
-      <img onclick="like(${data.id})" class=${data.likes.some((x) => false || x === CURRENT_USER)
+      <img onclick="like(${data.id})" class=${data.likes.some((x) => false || x === CURRENT_USER.USERNAME)
                         ? "liked"
                         : "notLiked"
                     } src="https://img.icons8.com/external-justicon-flat-justicon/64/000000/external-like-notifications-justicon-flat-justicon.png"/>
@@ -67,13 +67,13 @@ document.addEventListener("DOMContentLoaded", function () {
             .then((response) => response.json())
             .then((item) => {
                 document.querySelector(`#post${id}`).innerHTML = `
-                <p class="creator"> ${item.creator}
+                <p class="creator"> ${item.creator.username}
         <a class="cancel">Cancel </a>
         <a class="save">Save</a>
         </p >
       <p class="date">${item.created_at}</p>
      <textarea class="body" id="edit" value=""></textarea>
-      <img onclick="like(${item.id})" class=${item.likes.some((x) => false || x === CURRENT_USER)
+      <img onclick="like(${item.id})" class=${item.likes.some((x) => false || x === CURRENT_USER.USERNAME)
                         ? "liked"
                         : "notLiked"
                     } 
@@ -83,16 +83,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 document.querySelector("a.cancel").onclick = () => {
                     document.querySelector(`#post${item.id} `).innerHTML = `
-         <p class="creator">${item.creator}
+         <p class="creator">${item.creator.username}
 
-         ${CURRENT_USER === item.creator
+         ${CURRENT_USER.USERNAME === item.creator.username
                             ? '<a id="edit" onclick="edit(' + item.id + ')">edit</a>'
                             : ""
                         }</p>
          <p class="date">${item.created_at}</p>
          <p class="body">${item.post_body}</p>
 
-         <img onclick="like(${item.id})" class=${item.likes.some((x) => false || x === CURRENT_USER)
+         <img onclick="like(${item.id})" class=${item.likes.some((x) => false || x === CURRENT_USER.USERNAME)
                             ? "liked"
                             : "notLiked"
                         } src="https://img.icons8.com/external-justicon-flat-justicon/64/000000/external-like-notifications-justicon-flat-justicon.png"/>
@@ -109,14 +109,14 @@ document.addEventListener("DOMContentLoaded", function () {
                         .then((response) => response.json())
                         .then(function (item) {
                             document.querySelector(`#post${id}`).innerHTML = `
-                <p class="creator"> ${item.creator} ${CURRENT_USER === item.creator
+                <p class="creator"> ${item.creator.username} ${CURRENT_USER.USERNAME === item.creator.username
                                     ? '<a id="edit" onclick="edit(' + item.id + ')">edit</a>'
                                     : ""
                                 }</p >
       <p class="date">${item.created_at}</p>
       <p class="body">${item.post_body}</p>
 
-      <img onclick="like(${item.id})" class=${item.likes.some((x) => false || x === CURRENT_USER)
+      <img onclick="like(${item.id})" class=${item.likes.some((x) => false || x === CURRENT_USER.USERNAME)
                                     ? "liked"
                                     : "notLiked"
                                 } src="https://img.icons8.com/external-justicon-flat-justicon/64/000000/external-like-notifications-justicon-flat-justicon.png"/>
@@ -137,22 +137,97 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
     }
+    follow = (id) => {
+        console.log(id)
+        fetch(`/api/followUser/${id}`, { method: "POST" })
+            .then(response => response.json())
+            .then(function (data) {
+                console.log(data)
+                let profile = `
+            <div>
+            <p id="name">
+                ${data.user}
+                </p>
+                <button id="Follow" onclick="follow(${id})" class="btn ${data.followed_data.some((x) => false || x === CURRENT_USER.ID) ? "btn-danger" : "btn-primary"}">
+                ${data.followed_data.some((x) => false || x === CURRENT_USER.ID) ? "UnFollow" : "Follow"}
+                </button>
+                </div>
+                <div class="Follow_block">
+                <div>
+                <p>Following
+                ${data.following}
+                </p>
+                </div>
+                <div>
+                <p>Followed
+                ${data.followed}
+                </p>
+                </div>
+                </div>
+                `;
+                document.querySelector("#UserProfile").innerHTML = profile;
+
+
+            })
+    }
+    user = (id) => {
+        clearInterval(interval)
+        if (CURRENT_USER && id === CURRENT_USER.ID) {
+            document.querySelector("#Profile").click()
+        }
+        else {
+            history.pushState({ page: `${id}`, section: 1 }, "", "/")
+
+            fetch(`/api/userProfile/${id}`).then(response => response.json()).then(function (data) {
+                document.querySelector("#app").innerHTML = "";
+                document.querySelector("#pagination").innerHTML = "";
+                let profile = `<div class="posts Profile" id="UserProfile">
+            <div>
+            <p id="name">
+                ${data.user}
+                </p>
+                <button onclick="follow(${id})" class="btn ${data.following_data.some((x) => false || x === CURRENT_USER.ID) ? "btn-danger" : "btn-primary"}">
+                ${data.following_data.some((x) => false || x === CURRENT_USER.ID) ? "UnFollow" : "Follow"}
+                </button>
+                </div>
+                <div class="Follow_block">
+                <div>
+                <p>Following
+                ${data.following}
+                </p>
+                </div>
+                <div>
+                <p>Followed
+                ${data.followed}
+                </p>
+                </div>
+                </div></div >
+                `;
+                document.querySelector("#app").innerHTML = profile;
+                document.querySelector("#Follow").onclick = follow(id)
+
+
+            });
+            fetch(`/api/postsOfUser/${id}/${history.state.section}`).then(response => response.json()).then(function (data) { load(data) })
+        }
+    }
     load = (data) => {
+        console.log(data)
         document.querySelector("#pagination").innerHTML = ""
         let postCard = data.data.map(
             (item) =>
                 `
        <div class="posts" id="post${item.id}">
-         <p class="creator">${item.creator}
+         <p class="creator" onclick="user(${item.creator.id})">${item.creator.username}
 
-         ${CURRENT_USER === item.creator
+         ${CURRENT_USER.USERNAME === item.creator.username
                     ? '<a id="edit" onclick="edit(' + item.id + ')">edit</a>'
                     : ""
                 }</p>
          <p class="date">${item.created_at}</p>
          <p class="body">${item.post_body}</p>
 
-         <img onclick="like(${item.id})" class=${item.likes.some((x) => false || x === CURRENT_USER)
+         <img onclick="like(${item.id})" class=${item.likes.some((x) => false || x === CURRENT_USER.USERNAME)
                     ? "liked"
                     : "notLiked"
                 } src="https://img.icons8.com/external-justicon-flat-justicon/64/000000/external-like-notifications-justicon-flat-justicon.png"/>
@@ -184,13 +259,11 @@ document.querySelector("#AllPosts").onclick = (e) => {
         e.preventDefault();
 
     }
-    else {
-        //  location.reload()
-    }
+
     if (history.state === null || history.state.section === 1) {
         history.pushState({ page: "#AllPosts", section: 1 }, "", "/")
     }
-    if (CURRENT_USER !== null) {
+    if (CURRENT_USER.USERNAME !== null) {
 
         document.querySelector("#app").innerHTML = `<form class="allPosts" >
         <div class="posts">
@@ -225,7 +298,7 @@ document.querySelector("#AllPosts").onclick = (e) => {
         .then((data) => {
 
             load(data);
-            if (CURRENT_USER !== null) {
+            if (CURRENT_USER.USERNAME !== null) {
 
                 document.querySelector("form.allPosts").onsubmit = (e) => {
                     e.preventDefault();
@@ -269,7 +342,7 @@ document.querySelector("#Profile").onclick = (e) => {
                 `;
             document.querySelector("#app").innerHTML = profile;
         });
-    fetch(`/api/postsOfUser/${history.state.section}`)
+    fetch(`/api/postsOfUser/${CURRENT_USER.ID}/${history.state.section}`)
         .then((response) => response.json())
         .then((data) => {
             if (data.error) {
@@ -306,4 +379,3 @@ document.querySelector("#Following").onclick = (e) => {
             });
     }, 1000)
 };
-/**/

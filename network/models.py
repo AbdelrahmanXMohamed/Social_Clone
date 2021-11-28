@@ -17,7 +17,7 @@ class Post(models.Model):
         "id":self.id,
         "created_at": self.created_at.strftime("%b %d %Y, %I:%M %p"),
         "likes":[like.username for like in self.likes.all()],
-        "creator":self.creator.username,
+        "creator":{"username":self.creator.username,"id":self.creator.id},
         "post_body":self.post_body
         }    
     def deal_with_like(self,user):
@@ -40,6 +40,8 @@ class Profile(models.Model):
         "id":self.id,
         "followed":len(self.followed.all()),
         "following":len(self.following.all()),
+        "followed_data": [user.id for user in self.followed.all()],
+        "following_data":[user.id for user in self.following.all()],
         "user":self.user.username
         }
     def get_following(self):
